@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Intervention\Image\Facades\Image;
 
 class HaberlerController extends Controller
 {
@@ -101,11 +102,11 @@ class HaberlerController extends Controller
     public function store(Request $request)
     {
         try {
-            // Veri doğrulama alanı
+            // Veri doğrulama
             $request->validate([
                 'baslik' => 'required|string|max:255',
                 'icerik' => 'required|string|min:10',
-                'resim' => 'nullable|image|mimes:webp|max:2048'
+                'resim' => 'nullable|image|mimes:webp|max:10240'
             ], [
                 'baslik.required' => 'Başlık alanı zorunludur.',
                 'baslik.string' => 'Başlık metin formatında olmalıdır.',
@@ -114,8 +115,8 @@ class HaberlerController extends Controller
                 'icerik.string' => 'İçerik metin formatında olmalıdır.',
                 'icerik.min' => 'İçerik en az 10 karakter olmalıdır.',
                 'resim.image' => 'Yüklenen dosya bir resim olmalıdır.',
-                'resim.mimes' => 'Resim sadece webp formatında olmalıdır.',
-                'resim.max' => 'Resim boyutu en fazla 2MB olabilir.'
+                'resim.mimes' => 'Resim webp formatında olmalıdır.',
+                'resim.max' => 'Resim boyutu en fazla 10MB olabilir.'
             ]);
 
             $data = [
@@ -123,12 +124,22 @@ class HaberlerController extends Controller
                 'icerik' => $request->icerik,
             ];
 
-            // Resim yükleme işlemi
+            // Resim yükleme ve yeniden boyutlandırma
             if ($request->hasFile('resim')) {
                 $image = $request->file('resim');
                 $imageName = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
-                
-                $image->storeAs('public/haber', $imageName);
+
+                // Görseli yeniden boyutlandır 800x800
+                $resizedImage = Image::make($image)
+                    ->resize(800, 800, function ($constraint) {
+                        $constraint->aspectRatio(); // Oranı koruyoruz
+                        $constraint->upsize();
+                    })
+                    ->encode('webp');
+
+                // Dosyayı storage'a kaydet
+                Storage::put('public/haber/' . $imageName, $resizedImage);
+
                 $data['resim'] = $imageName;
             }
 
@@ -154,6 +165,7 @@ class HaberlerController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Belirli bir haberi göster
@@ -190,48 +202,43 @@ class HaberlerController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            // İlgili Haberi buluyoruz
-            $haber = Haberler::find($id);
-            
-            if (!$haber) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Güncellenecek haber bulunamadı.'
-                ], 404);
-            }
+            $haber = Haberler::findOrFail($id);
 
-            // Veri doğrulama
             $request->validate([
                 'baslik' => 'required|string|max:255',
                 'icerik' => 'required|string|min:10',
-                'resim' => 'nullable|image|mimes:webp|max:2048'
+                'resim' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240' 
             ], [
                 'baslik.required' => 'Başlık alanı zorunludur.',
-                'baslik.string' => 'Başlık metin formatında olmalıdır.',
-                'baslik.max' => 'Başlık en fazla 255 karakter olabilir.',
                 'icerik.required' => 'İçerik alanı zorunludur.',
-                'icerik.string' => 'İçerik metin formatında olmalıdır.',
-                'icerik.min' => 'İçerik en az 10 karakter olmalıdır.',
                 'resim.image' => 'Yüklenen dosya bir resim olmalıdır.',
-                'resim.mimes' => 'Resim sadece webp formatında olmalıdır.',
-                'resim.max' => 'Resim boyutu en fazla 2MB olabilir.'
+                'resim.mimes' => 'Resim formatı desteklenmiyor (jpeg, png, webp vb. olmalı).',
+                'resim.max' => 'Resim boyutu en fazla 10MB olabilir.'
             ]);
 
-            $data = [
-                'baslik' => $request->baslik,
-                'icerik' => $request->icerik,
-            ];
+            $data = $request->only(['baslik', 'icerik']);
 
-            // Yeni resim yükleme işlemi
             if ($request->hasFile('resim')) {
+                // Varsa eski resmi diskten sil
                 if ($haber->resim && Storage::exists('public/haber/' . $haber->resim)) {
                     Storage::delete('public/haber/' . $haber->resim);
                 }
 
-                // Yeni resmi kaydediyoruz
+                // Yeni resmi al ve işle
                 $image = $request->file('resim');
-                $imageName = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
-                $image->storeAs('public/haber', $imageName);
+                $imageName = time() . '_' . Str::random(10) . '.webp';
+
+                // Görseli yeniden boyutlandır ve WebP'ye çevir
+                $resizedImage = Image::make($image)
+                    ->resize(800, 800, function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    })
+                    ->encode('webp', 90);
+
+                Storage::put('public/haber/' . $imageName, $resizedImage);
+                
+                // Veritabanına kaydedilecek resim adını atıyoruz
                 $data['resim'] = $imageName;
             }
 
@@ -239,7 +246,7 @@ class HaberlerController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $haber->fresh(), // Güncellenmiş veriyi getiriyoruz
+                'data' => $haber,
                 'message' => 'Haber başarıyla güncellendi.'
             ], 200);
 
