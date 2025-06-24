@@ -6,8 +6,8 @@ use App\Http\Controllers\Api\HaberlerController;
 
 Route::prefix('v1')->group(function () {
 
-    // Token ile korunan rotalar.
-    Route::middleware('auth.token')->group(function () {
+    // Token ile korunan rotalar + log işlemi 
+    Route::middleware(['log', 'tokendogrula'])->group(function () {
         Route::get('haberler', [HaberlerController::class, 'index']);
         Route::get('haberler/{id}', [HaberlerController::class, 'show']);
 
@@ -15,5 +15,5 @@ Route::prefix('v1')->group(function () {
         Route::put('haberler/{id}', [HaberlerController::class, 'update']);
         Route::delete('haberler/{id}', [HaberlerController::class, 'destroy']);
     });
-    
+
 });

@@ -13,7 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'auth.token' => \App\Http\Middleware\TokenIleDogrula::class,
+            'tokendogrula' => \App\Http\Middleware\TokenIleDogrula::class,
+            'log' => \App\Http\Middleware\LogMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
