@@ -12,22 +12,84 @@ use Illuminate\Validation\ValidationException;
 class HaberlerController extends Controller
 {
     /**
-     * Tüm haberleri listele
+     * Tüm haberleri sayfalama ile listele
      */
-    public function index()
-    {
+    public function index(Request $request)
+    {   
+        // 250.000 veri olacagı için sayfalama eklendi.
         try {
-            $haberler = Haberler::orderBy('created_at', 'desc')->get();
+
+            $perPage = $request->get('per_page', 15);
+            $perPage = min(max($perPage, 1), 100);
+            
+            $haberler = Haberler::orderBy('created_at', 'desc')->paginate($perPage);
             
             return response()->json([
                 'success' => true,
-                'data' => $haberler,
+                'data' => $haberler->items(),
+                'pagination' => [
+                    'current_page' => $haberler->currentPage(),
+                    'last_page' => $haberler->lastPage(),
+                    'per_page' => $haberler->perPage(),
+                    'total' => $haberler->total(),
+                    'from' => $haberler->firstItem(),
+                    'to' => $haberler->lastItem(),
+                    'has_more_pages' => $haberler->hasMorePages()
+                ],
                 'message' => 'Haberler başarıyla getirildi.'
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Haberler getirilirken bir hata oluştu.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Haber arama fonksiyonu
+     */
+    public function search(Request $request)
+    {
+        try {
+            $request->validate([
+                'q' => 'required|string|min:2|max:255',
+            ], [
+                'q.required' => 'Arama terimi zorunludur.',
+                'q.string' => 'Arama terimi metin formatında olmalıdır.',
+                'q.min' => 'Arama terimi en az 2 karakter olmalıdır.',
+                'q.max' => 'Arama terimi en fazla 255 karakter olabilir.',
+            ]);
+
+            $arananKelime = $request->get('q');
+            $perPage = $request->get('per_page', 15);
+            
+            $haberler = Haberler::where('baslik', 'LIKE', '%' . $arananKelime . '%')->orderBy('created_at', 'desc')->paginate($perPage);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $haberler->items(),
+                'search_term' => $arananKelime,
+                'pagination' => [
+                    'last_page' => $haberler->lastPage(),
+                    'total' => $haberler->total(),
+                ],
+                'message' => $haberler->total() > 0 
+                    ? $haberler->total() . ' adet haber bulundu.' 
+                    : 'Aradığınız kriterlere uygun haber bulunamadı.'
+            ], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Arama kriterlerinde hata var.',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Arama işlemi sırasında bir hata oluştu.',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -45,7 +107,6 @@ class HaberlerController extends Controller
                 'icerik' => 'required|string|min:10',
                 'resim' => 'nullable|image|mimes:webp|max:2048'
             ], [
-                // Gerekli alanlar ile alakalı hata mesajları
                 'baslik.required' => 'Başlık alanı zorunludur.',
                 'baslik.string' => 'Başlık metin formatında olmalıdır.',
                 'baslik.max' => 'Başlık en fazla 255 karakter olabilir.',
@@ -129,7 +190,6 @@ class HaberlerController extends Controller
     public function update(Request $request, $id)
     {
         try {
-
             // İlgili Haberi buluyoruz
             $haber = Haberler::find($id);
             
