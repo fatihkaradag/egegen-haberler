@@ -17,8 +17,6 @@ return new class extends Migration
             $table->string('baslik');
             $table->text('icerik');
             $table->string('resim')->nullable();
-            $table->string('slug')->unique();
-            $table->boolean('yayindami')->default(true);
             $table->timestamps();
         });
     }
