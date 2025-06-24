@@ -1,0 +1,251 @@
+{
+	"info": {
+		"_postman_id": "aee41b02-a44e-46f6-8553-37db443f0d47",
+		"name": "egegen-haberler",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "46130471"
+	},
+	"item": [
+		{
+			"name": "Tüm Haberleri Getir",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "2BH52wAHrAymR7wP3CASt",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/api/v1/haberler/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"haberler",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Tek Haber Getir",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "2BH52wAHrAymR7wP3CASt",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/api/v1/haberler/1001",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"haberler",
+						"1001"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Haber Ara",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "2BH52wAHrAymR7wP3CASt",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/api/v1/haberler/ara?q=Sit",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"haberler",
+						"ara"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "Sit"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Haber Sil",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "2BH52wAHrAymR7wP3CASt",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/api/v1/haberler/2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"haberler",
+						"2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Haber Ekle",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "2BH52wAHrAymR7wP3CASt",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "baslik",
+							"value": "Test Haber Başlığı",
+							"type": "text"
+						},
+						{
+							"key": "icerik",
+							"value": "Haber içeriği buraya gelecek",
+							"type": "text"
+						},
+						{
+							"key": "resim",
+							"type": "file",
+							"src": "/C:/Users/Fatih/Downloads/pexels-consumedbyjpgs-1662055280-31999695.webp",
+							"disabled": true
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/v1/haberler",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"haberler"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Haber Güncelle",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "2BH52wAHrAymR7wP3CASt",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"baslik\":\"123\",\r\n    \"icerik\":\"abcssssssss\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/v1/haberler/1001",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"haberler",
+						"1001"
+					],
+					"query": [
+						{
+							"key": "",
+							"value": null,
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
