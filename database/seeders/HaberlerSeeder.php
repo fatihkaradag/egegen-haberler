@@ -16,9 +16,8 @@ class HaberlerSeeder extends Seeder
     public function run(): void
     {
         // Kaç adet veri oluşturacağımızı buradan belirliyoruz.
-        // uzun sürdüğü için ben 1000 kayıt yaptım. 250000 olarak değiştirebiliriz.
-        $toplamVeri = 1000; //250000
-        $parcaBoyutu = 100; //1000
+        $toplamVeri = 250000;
+        $parcaBoyutu = 1000;
         $parcaSayisi = ceil($toplamVeri / $parcaBoyutu);
 
         // Performans için foreign key kontrolünü kapatıyoruz
