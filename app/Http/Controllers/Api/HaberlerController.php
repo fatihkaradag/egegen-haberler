@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Intervention\Image\Facades\Image;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Encoders\WebpEncoder;
 
 class HaberlerController extends Controller
 {
@@ -126,21 +128,27 @@ class HaberlerController extends Controller
 
             // Resim yükleme ve yeniden boyutlandırma
             if ($request->hasFile('resim')) {
-                $image = $request->file('resim');
-                $imageName = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+                $file = $request->file('resim');
 
-                // Görseli yeniden boyutlandır 800x800
-                $resizedImage = Image::make($image)
-                    ->resize(800, 800, function ($constraint) {
-                        $constraint->aspectRatio(); // Oranı koruyoruz
-                        $constraint->upsize();
-                    })
-                    ->encode('webp');
+                $manager = new GdDriver();
+                
+                // Resmi oku
+                $image = $manager->read($file->getRealPath());
+                
+                // Boyutlandır (en-boy oranını koru)
+                $image->scaleDown(800, 800);
+                
+                // WebP formatına çevir
+                $encoded = $image->toWebp(60);
+                
+                // Benzersiz dosya adı oluştur
+                $filename = uniqid('news_') . '.webp';
+                
+                // Dosyayı kaydet
+                Storage::put('public/haber/' . $filename, $encoded);
 
-                // Dosyayı storage'a kaydet
-                Storage::put('public/haber/' . $imageName, $resizedImage);
-
-                $data['resim'] = $imageName;
+                // Veri dizisine resim adını ekle
+                $data['resim'] = $filename;
             }
 
             $haber = Haberler::create($data);
@@ -207,16 +215,23 @@ class HaberlerController extends Controller
             $request->validate([
                 'baslik' => 'required|string|max:255',
                 'icerik' => 'required|string|min:10',
-                'resim' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240' 
+                'resim' => 'nullable|image|mimes:webp|max:10240'
             ], [
                 'baslik.required' => 'Başlık alanı zorunludur.',
+                'baslik.string' => 'Başlık metin formatında olmalıdır.',
+                'baslik.max' => 'Başlık en fazla 255 karakter olabilir.',
                 'icerik.required' => 'İçerik alanı zorunludur.',
+                'icerik.string' => 'İçerik metin formatında olmalıdır.',
+                'icerik.min' => 'İçerik en az 10 karakter olmalıdır.',
                 'resim.image' => 'Yüklenen dosya bir resim olmalıdır.',
-                'resim.mimes' => 'Resim formatı desteklenmiyor (jpeg, png, webp vb. olmalı).',
+                'resim.mimes' => 'Resim webp formatında olmalıdır.',
                 'resim.max' => 'Resim boyutu en fazla 10MB olabilir.'
             ]);
 
-            $data = $request->only(['baslik', 'icerik']);
+            $data = [
+                'baslik' => $request->baslik,
+                'icerik' => $request->icerik,
+            ];
 
             if ($request->hasFile('resim')) {
                 // Varsa eski resmi diskten sil
@@ -224,22 +239,24 @@ class HaberlerController extends Controller
                     Storage::delete('public/haber/' . $haber->resim);
                 }
 
-                // Yeni resmi al ve işle
-                $image = $request->file('resim');
-                $imageName = time() . '_' . Str::random(10) . '.webp';
+                $file = $request->file('resim');
 
-                // Görseli yeniden boyutlandır ve WebP'ye çevir
-                $resizedImage = Image::make($image)
-                    ->resize(800, 800, function ($constraint) {
-                        $constraint->aspectRatio();
-                        $constraint->upsize();
-                    })
-                    ->encode('webp', 90);
-
-                Storage::put('public/haber/' . $imageName, $resizedImage);
+                $manager = new GdDriver();
                 
-                // Veritabanına kaydedilecek resim adını atıyoruz
-                $data['resim'] = $imageName;
+                $image = $manager->read($file->getRealPath());
+                
+                // Boyutlandır (en-boy oranını koru)
+                $image->scaleDown(800, 800);
+                
+                // WebP formatına çevir
+                $encoded = $image->toWebp(60);
+                
+                $filename = uniqid('news_') . '.webp';
+                
+                // Dosyayı kaydet
+                Storage::put('public/haber/' . $filename, $encoded);
+
+                $data['resim'] = $filename;
             }
 
             $haber->update($data);
@@ -256,6 +273,11 @@ class HaberlerController extends Controller
                 'message' => 'Girilen bilgilerde hata var.',
                 'errors' => $e->errors()
             ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Güncellenecek haber bulunamadı.'
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
